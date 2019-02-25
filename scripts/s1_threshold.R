@@ -29,30 +29,6 @@ system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -co COMPRESS=LZW %s %
 
 # clip bfast output to mask
 system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPRESS=LZW %s %s",
-               extent(raster(paste0(thres_dir,"tmp_proj.tif")))@xmin,
-               extent(raster(paste0(thres_dir,"tmp_proj.tif")))@ymax,
-               extent(raster(paste0(thres_dir,"tmp_proj.tif")))@xmax,
-               extent(raster(paste0(thres_dir,"tmp_proj.tif")))@ymin,
-               res(raster(paste0(thres_dir,"tmp_proj.tif")))[1],
-               res(raster(paste0(thres_dir,"tmp_proj.tif")))[2],
-               
-               bfastout,
-               paste0(thres_dir,"tmp_clip_bfast.tif")
-))
-# clip mask to bfast output 
-system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPRESS=LZW %s %s",
-               extent(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))@xmin,
-               extent(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))@ymax,
-               extent(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))@xmax,
-               extent(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))@ymin,
-               res(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))[1],
-               res(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))[2],
-               
-               paste0(thres_dir,"tmp_proj.tif"),
-               forestmask.albertine
-))
-
-system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPRESS=LZW %s %s",
                extent(raster(bfastout))@xmin,
                extent(raster(bfastout))@ymax,
                extent(raster(bfastout))@xmax,
@@ -63,15 +39,6 @@ system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPR
                paste0(thres_dir,"tmp_proj.tif"),
                forestmask.albertine
 ))
-plot(raster())
-gdalinfo(forestmask,mm=T)
-plot(raster(forestmask))
-plot(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))
-plot(raster(forestmask.albertine),add=T)
-
-extent(raster(paste0(thres_dir,"tmp_clip_bfast.tif")))@ymin
-extent(raster(forestmask.albertine))@ymin
-
 
 
 system(sprintf("gdal_calc.py -A %s -B %s --B_band=2 --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
@@ -80,8 +47,8 @@ system(sprintf("gdal_calc.py -A %s -B %s --B_band=2 --co COMPRESS=LZW --overwrit
                result,
                paste0("A*B")
 ))
-plot(raster(forestmask.albertine))
-plot(raster(result))
+# plot(raster(forestmask.albertine))
+# plot(raster(result))
 
 ## Post-processing ####
 # calculate the mean, standard deviation, minimum and maximum of the magnitude band
@@ -101,15 +68,16 @@ plot(raster(result))
 tryCatch({
   
   outputfile   <- paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_threshold.tif')
-  
+  # r <- raster(result)
+  # NAvalue(r) <- 0
   means_b2 <- cellStats( raster(result) , na.rm=TRUE, "mean") 
-  mins_b2 <- cellStats(raster(result) , "min")
-  maxs_b2 <- cellStats( raster(result) , "max")
-  stdevs_b2 <- cellStats( raster(result) , "sd")
+  mins_b2 <- cellStats( raster(result) , na.rm=TRUE,"min")
+  maxs_b2 <- cellStats(  raster(result) ,na.rm=TRUE, "max")
+  stdevs_b2 <- cellStats(  raster(result) ,na.rm=TRUE, "sd")
   system(sprintf("gdal_calc.py -A %s --co=COMPRESS=LZW --type=Byte --outfile=%s --calc='%s'
                  ",
                  result,
-                 paste0(thres_dir,"tmp_example_",example_title,'_threshold.tif'),
+                 paste0(thres_dir,"tmp_threshold.tif"),
                  paste0('(A<=',(maxs_b2),")*",
                         '(A>',(means_b2+(stdevs_b2*4)),")*9+",
                         '(A<=',(means_b2+(stdevs_b2*4)),")*",
@@ -135,7 +103,6 @@ tryCatch({
 
 ####################  CREATE A PSEUDO COLOR TABLE
 cols <- col2rgb(c("white","beige","yellow","orange","red","darkred","palegreen","green2","forestgreen",'darkgreen'))
-colors()
 pct <- data.frame(cbind(c(0:9),
                         cols[1,],
                         cols[2,],
@@ -149,7 +116,7 @@ write.table(pct,paste0(thres_dir,"color_table.txt"),row.names = F,col.names = F,
 ## Add pseudo color table to result
 system(sprintf("(echo %s) | oft-addpct.py %s %s",
                paste0(thres_dir,"color_table.txt"),
-               paste0(thres_dir,"tmp_example_",example_title,'_threshold.tif'),
+               paste0(thres_dir,"tmp_threshold.tif"),
                paste0(thres_dir,"/","tmp_colortable.tif")
 ))
 ## Compress final result
