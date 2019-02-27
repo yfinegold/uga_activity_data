@@ -73,7 +73,7 @@ tryCatch({
   means_b2 <- cellStats( raster(result) , na.rm=TRUE, "mean") 
   mins_b2 <- cellStats( raster(result) , na.rm=TRUE,"min")
   maxs_b2 <- cellStats(  raster(result) ,na.rm=TRUE, "max")
-  stdevs_b2 <- cellStats(  raster(result) ,na.rm=TRUE, "sd")
+  stdevs_b2 <- cellStats(  raster(result) ,na.rm=TRUE, "sd")/2
   system(sprintf("gdal_calc.py -A %s --co=COMPRESS=LZW --type=Byte --outfile=%s --calc='%s'
                  ",
                  result,
@@ -124,7 +124,7 @@ system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
                paste0(thres_dir,"/","tmp_colortable.tif"),
                outputfile
 ))
-gdalinfo(outputfile,hist = T)
+# gdalinfo(outputfile,hist = T)
 ## Clean all
 system(sprintf(paste0("rm ",thres_dir,"/","tmp*.tif")))
 
