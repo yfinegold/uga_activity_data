@@ -40,7 +40,7 @@ system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPR
                forestmask.albertine
 ))
 
-
+# apply mask
 system(sprintf("gdal_calc.py -A %s -B %s --B_band=2 --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                forestmask.albertine,
                bfastout,

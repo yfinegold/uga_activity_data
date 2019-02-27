@@ -1,6 +1,6 @@
 ####################################################################################################
 ####################################################################################################
-## Run BFAST over multiple indeces and many points
+## Run BFAST over many points
 ## First download the timeseries for all the indeces of interest in SEPAL then save the time series in
 ## one folder, the 'time_series_dir'
 ## Contact yelena.finegold@fao.org
@@ -20,16 +20,17 @@ library(rgdal)
 library(stats)
 #  enter the directory where the time series is downloaded
 # use tab at the end of the line after time-series to autocomplete the next line
-time_series_dir <- '~/downloads/suba/'
+time_series_dir <- '~/downloads/field_site_time_series/'
 # file with your point data
 # fielddata_file <- '/home/finegold/degrad/natural_plantation_wgs84.shp'
-fielddata <- readOGR('/home/finegold/ethiopia/degrad/GIZ_data/Yelena_collectedData_earthsuba_ce_on_200818_153342_CSV.shp')
+fielddata <- readOGR(paste0(ref_dir,'field_points_feb/field_points_feb.shp'))
+id_column_name <- 'id'
 
 head(fielddata)
 # fielddata <- spTransform(fielddata,
 #                          CRS("+proj=longlat +datum=WGS84"))
 # specify the beginning of the historical period and monitoring period
-monitoring_year_beg <- 2013
+monitoring_year_beg <- 2015
 # specify the parameters for BFAST, options are in comments for each parameter
 formula <- 'response ~ harmon'  # 'response ~ harmon', "response ~  trend", 'response ~ trend + harmon'
 orders <-   1                   # 1,2,3,4,5
@@ -59,9 +60,9 @@ for(tsfile in 1:length(timeseries)){
   for(n in 1:nrow(fielddata)){
     n.plot <- raster::extract(brick.timeseries.file,fielddata[n,])
     ts.plot <- bfastts(as.vector(n.plot), ts.date, type = "irregular")
-    print(paste0('Plot number: ',fielddata[n,1]$id))
+    print(paste0('Plot number: ',fielddata[n,1][[id_column_name]]))
     print(paste0('Parameters: ',formula, '  ', orders, '  ', types, '  ', historys))
-    jpeg(paste(fielddata[n,1]$id,'_bfastplot.jpg'))
+    jpeg(paste(fielddata[n,1][[id_column_name]],'_bfastplot.jpg'))
     # png('bfastplot.png')
     out2 <- bfastmonitor(ts.plot,
                          start= c(monitoring_year_beg,1),
@@ -83,5 +84,5 @@ for(tsfile in 1:length(timeseries)){
 }
 
 # write output to SHP in the timeseries directory
-outputname <- paste0(strsplit(basename(fielddata_file), '.shp'),'_',paste0(gsub(' ~ ',"",formula,orders),'_',types,'_', historys),'.shp')
+outputname <- paste0(strsplit(basename(fielddata), '.shp'),'_',paste0(gsub(' ~ ',"",formula,orders),'_',types,'_', historys),'.shp')
 # writeOGR(fielddata, dsn = time_series_dir, layer = outputname, driver = "ESRI Shapefile", overwrite=TRUE)
