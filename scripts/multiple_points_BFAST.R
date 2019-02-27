@@ -10,6 +10,7 @@
 ##############################################################
 ######## USER PARAMETERS
 ##############################################################
+source('~/uga_degradation/scripts/get_parameters.R')
 
 #import packages
 # library(foreach)
