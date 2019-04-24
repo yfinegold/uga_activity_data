@@ -10,7 +10,7 @@ In SEPAL, open a terminal and start an instance #2
 
 Clone the repository with the following command:
 
-``` git clone https://github.com/yfinegold/uga_degradation ```
+``` git clone https://github.com/yfinegold/uga_activity_data ```
 
 Open another SEPAL tab, go to the Process tab and click on RStudio and under the directory, "uga_degradation" in your root folder open and ``` source()``` the following scripts:
 
