@@ -5,6 +5,8 @@
 ## created : 09 April 2019
 ## modified: 24 April 2019
 
+source('~/uga_activity_data/scripts/get_parameters.R')
+
 ## load data
 cefile <- paste0(ref_dir,'TOTAL_collectedData_earthuri_ce_changes1517_on_080319_151929_CSV.csv')
 lc2015 <- paste0(lc15_dir,'sieved_LC_2015.tif')
@@ -13,8 +15,8 @@ mgmt   <- paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.shp')
 
 proj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 
-lc2015p <- paste0(lc2015,"sieved_LC_2015_proj.tif")
-lc2017p <- paste0(lc2017,"LC_2017_18012019_proj.tif")
+lc2015p <- paste0(lc15_dir,"sieved_LC_2015_proj.tif")
+lc2017p <- paste0(lc17_dir,"LC_2017_18012019_proj.tif")
 
 ###############################################################################
 ################### REPROJECT IN latlong PROJECTION
@@ -36,12 +38,18 @@ system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -multi -co COMPRESS=L
 #################################################
 ## create change map
 #################################################
-##### rasterize mgmt map
-# ugdir <- '/home/finegold/uganda/ad/'
-# mgmt_dir <- '/home/finegold/uganda/mgmt_areas/'
+##### reproject mgmt data into latlong
+mgmt.data <- readOGR(mgmt)
+#download province boundaries
+adm <- getData ('GADM', country= countrycode, level=1)
+#match the coordinate systems for the sample points and the boundaries
+mgmt.data.proj <- spTransform(mgmt.data,crs(adm))
+writeOGR(mgmt.data.proj,mgmt_dir,'Protected_Areas_WGS84_dslv',driver = 'ESRI Shapefile')
 
-system(sprintf("python %s/oft-rasterize_attr.py -v %s -i %s -o %s -a %s",
-               ad_dir,
+
+##### rasterize mgmt map
+system(sprintf("python %soft-rasterize_attr.py -v %s -i %s -o %s -a %s",
+               scriptdir,
                paste0(mgmt_dir,'Protected_Areas_WGS84_dslv.shp'),
                lc2015p,
                paste0(mgmt_dir,"Protected_Areas_WGS84_dslv.tif"),
@@ -49,7 +57,7 @@ system(sprintf("python %s/oft-rasterize_attr.py -v %s -i %s -o %s -a %s",
 ))
 
 system(sprintf("python %s/oft-rasterize_attr.py -v %s -i %s -o %s -a %s",
-               ad_dir,
+               scriptdir,
                mgmt,
                lc2015,
                paste0(mgmt_dir,"Protected_Areas_UTM_dslv.tif"),
@@ -166,3 +174,4 @@ system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfil
                paste0("(A*B)"
                )
 ))
+
