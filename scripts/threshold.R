@@ -15,7 +15,7 @@ forestmask.albertine <- paste0(lc_dir,'THF_mask2017_albertine.tif')
 
 ## parameters
 # factor to divide standard deviation
-divide_sd <- 1
+divide_sd <- 4
 
 #################### reclassify LC map into THF mask
 system(sprintf("gdal_calc.py -A %s --type=Byte --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
