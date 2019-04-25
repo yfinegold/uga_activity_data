@@ -51,7 +51,6 @@ table(coord.spdf$region,coord.spdf$adm1)
 
 ## reproject mgmt data into latlong
 mgmt.data.proj <- spTransform(mgmt.data,crs(coord.spdf))
-writeOGR(mgmt.data.proj,mgmtdir,'Protected_Areas_WGS84_dslv',driver = 'ESRI Shapefile')
 
 crs(mgmt.data.proj)
 head(mgmt.data.proj)
