@@ -330,7 +330,7 @@ names(melted_samplesize) <- c('class','samplesize')
 df.results.strat_srs_design <- merge(df.results.strat_srs_design,melted_samplesize,by='class')
 df.results.strat_srs_design
 ## write the output to a CSV
-write.csv(df.results.strat_srs_design,paste0(ad_dir,'map_substraction_analysis_1.csv'),row.names = F)
+write.csv(df.results.strat_srs_design,paste0(ad_dir,'map_substraction_national_analysis_1.csv'),row.names = F)
 
 ## explore data
 table(coord.spdf$change_2015_2017_label,coord.spdf$ref_class_label)
