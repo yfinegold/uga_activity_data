@@ -68,11 +68,14 @@ ref_dir  <- paste0(ad_dir,"ref/")
 
 lc15_dir <- paste0(data_dir,"lc_2015/")
 lc17_dir <- paste0(data_dir,"lc_2017/")
+gadm_dir <- paste0(data_dir,"gadm/")
+
 
 fld_dir  <- paste0(rootdir,"data/field_data/")
 coll_dir <- paste0(fld_dir,'collected_samples/')
 ana_dir  <- paste0(fld_dir,'analysis/')
 plts_dir <- paste0(fld_dir,"bfast_plots/")
+tile_dir <- paste0(bfast_dir,"tiles/")
 
 
 dir.create(data_dir,showWarnings = F)
@@ -89,3 +92,25 @@ dir.create(fld_dir,showWarnings = F)
 dir.create(ad_dir,showWarnings = F)
 dir.create(lc15_dir,showWarnings = F)
 dir.create(lc17_dir,showWarnings = F)
+dir.create(gadm_dir,showWarnings = F)
+dir.create(tile_dir,showWarnings = F)
+
+
+############ CREATE A FUNCTION TO GENERATE REGULAR GRIDS
+generate_grid <- function(aoi,size){
+  ### Create a set of regular SpatialPoints on the extent of the created polygons  
+  sqr <- SpatialPoints(makegrid(aoi,offset=c(-0.5,-0.5),cellsize = size))
+  
+  ### Convert points to a square grid
+  grid <- points2grid(sqr)
+  
+  ### Convert the grid to SpatialPolygonDataFrame
+  SpP_grd <- as.SpatialPolygons.GridTopology(grid)
+  
+  sqr_df <- SpatialPolygonsDataFrame(Sr=SpP_grd,
+                                     data=data.frame(rep(1,length(SpP_grd))),
+                                     match.ID=F)
+  ### Assign the right projection
+  proj4string(sqr_df) <- proj4string(aoi)
+  sqr_df
+}

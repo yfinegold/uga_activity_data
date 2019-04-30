@@ -1,6 +1,6 @@
 ## prepare forest mask for MSPA analysis
 # land cover map
-source('~/uga_degradation/scripts/get_parameters.R')
+source('~/uga_activity_data/scripts/get_parameters.R')
 
 lc <- paste0(lc_dir,'Ug2017_CW_gEdits4_co.tif')
 
