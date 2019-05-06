@@ -8,7 +8,6 @@
 ## modified: 24 April 2019
 ####################################################
 
-
 ### load the parameters
 source('~/uga_activity_data/scripts/get_parameters.R')
 
@@ -24,7 +23,6 @@ mgmt   <- paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.shp')
 
 ## Latlong projection used to reproject data
 proj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-
 
 ### assign names to data that will be created in this script
 lc2015.proj <- paste0(lc15_dir,"sieved_LC_2015_proj.tif")
@@ -42,19 +40,21 @@ change.sieved <- paste0(ad_dir,"change_2015_2017_sieve.tif")
 ###############################################################################
 
 # 2015 LC map
+if(!file.exists(lc2015.proj)){
 system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -multi -co COMPRESS=LZW %s %s",
                proj,
                lc2015,
                lc2015.proj
 ))
-
+}
 # 2017 LC map
+if(!file.exists(lc2017.proj)){
 system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -multi -co COMPRESS=LZW %s %s",
                proj,
                lc2017,
                lc2017.proj
 ))
-
+}
 ##### reproject mgmt data into latlong
 mgmt.data <- readOGR(mgmt)
 #download province boundaries
@@ -66,6 +66,7 @@ writeOGR(mgmt.data.proj,mgmt_dir,'Protected_Areas_WGS84_dslv',driver = 'ESRI Sha
 
 ##### rasterize mgmt map
 ##### latlong forest management map 
+if(!file.exists(mgmt.proj.tif)){
 system(sprintf("python %soft-rasterize_attr.py -v %s -i %s -o %s -a %s",
                scriptdir,
                mgmt.proj,
@@ -73,8 +74,10 @@ system(sprintf("python %soft-rasterize_attr.py -v %s -i %s -o %s -a %s",
                mgmt.proj.tif,
                "code"
 ))
+}
 
 ##### utm forest management map 
+if(!file.exists(mgmt.tif)){
 system(sprintf("python %s/oft-rasterize_attr.py -v %s -i %s -o %s -a %s",
                scriptdir,
                mgmt,
@@ -82,9 +85,11 @@ system(sprintf("python %s/oft-rasterize_attr.py -v %s -i %s -o %s -a %s",
                mgmt.tif,
                "code"
 ))
+}
 
-## match the extent of the 2 LC maps -- using the extent of 2015## CHANGE THIS TO PROJECTED
+## match the extent of the 2 LC maps -- using the extent of 2015
 bb<- extent(raster(lc2015))
+if(!file.exists(lc2017.aligned)){
 system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -co COMPRESS=LZW %s %s",
                floor(bb@xmin),
                ceiling(bb@ymax),
@@ -93,6 +98,7 @@ system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -co COMPRESS=LZW %s
                lc2017,
                lc2017.aligned
 ))
+}
 
 ###############################################################################
 ################### create change map
@@ -111,7 +117,7 @@ system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -co COMPRESS=LZW %s
 # 11 = forest gain THF
 # 12 = forest gain woodlands
 # 13 = stable non-forest
-
+if(!file.exists(change)){
 system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --type=Byte --outfile=%s --calc=\"%s\"",
                lc2015,
                lc2017.aligned,
@@ -131,13 +137,16 @@ system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --type=Byte --outfil
                       "(A>5) * (B>5)             * 13"  ### stable non-forest
                )
 ))
+}
 
 ################### SIEVE TO THE MMU
-system(sprintf("gdal_sieve.py -st %s %s %s ",
+if(!file.exists(change.sieved)){
+  system(sprintf("gdal_sieve.py -st %s %s %s ",
                mmu,
                change,
                paste0(ad_dir,"tmp_change_2015_2017_sieve.tif")
 ))
+
 
 ################### COMPRESS
 system(sprintf("gdal_translate -ot Byte -co COMPRESS=LZW %s %s",
@@ -149,43 +158,50 @@ system(sprintf("gdal_translate -ot Byte -co COMPRESS=LZW %s %s",
 system(sprintf("rm %s ",
                paste0(ad_dir,"tmp_change_2015_2017_sieve.tif")
 ))
-
+}
 ################### project to latlong
+if(!file.exists(paste0(ad_dir,"change_2015_2017_sieve_wgs84.tif"))){
 system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -multi -co COMPRESS=LZW %s %s",
                proj,
                change.sieved,
                paste0(ad_dir,"change_2015_2017_sieve_wgs84.tif")
 ))
+}
 
 ###############################################################################
 ################### INCLUDE FOREST MANAGEMENT INFORMATION
 ###############################################################################
 
 ################### CREATE PRIVATE LANDS MASK
+if(!file.exists(paste0(mgmt_dir,"private_lands_UTM.tif"))){
 system(sprintf("gdal_calc.py -A %s --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                mgmt.tif,
                paste0(mgmt_dir,"private_lands_UTM.tif"),
                paste0("(A==0)*1"
                       )
 ))
-
+}
 ################### CREATE UWA LANDS MASK
+if(!file.exists(paste0(mgmt_dir,"UWA_UTM.tif"))){
 system(sprintf("gdal_calc.py -A %s --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                mgmt.tif,
                paste0(mgmt_dir,"UWA_UTM.tif"),
                paste0("(A==10)*1"
                )
 ))
-
+}
 ################### CREATE NFA LANDS MASK
+if(!file.exists(paste0(mgmt_dir,"NFA_UTM.tif"))){
 system(sprintf("gdal_calc.py -A %s --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                mgmt.tif,
                paste0(mgmt_dir,"NFA_UTM.tif"),
                paste0("(A==100)*1"
                )
 ))
+}
 
 ################### CHANGE MAP ON PRIVATE LANDS
+if(!file.exists(paste0(ad_dir,"change_2015_2017_private_lands_UTM.tif"))){
 system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                change.sieved,
                paste0(mgmt_dir,"private_lands_UTM.tif"),
@@ -193,8 +209,10 @@ system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfil
                paste0("(A*B)"
                )
 ))
+}
 
 ################### CHANGE MAP ON UWA LANDS
+if(!file.exists(paste0(ad_dir,"change_2015_2017_UWA_UTM.tif"))){
 system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                change.sieved,
                paste0(mgmt_dir,"UWA_UTM.tif"),
@@ -202,8 +220,10 @@ system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfil
                paste0("(A*B)"
                )
 ))
+}
 
 ################### CHANGE MAP ON NFA LANDS
+if(!file.exists(paste0(ad_dir,"change_2015_2017_NFA_UTM.tif"))){
 system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                change.sieved,
                paste0(mgmt_dir,"NFA_UTM.tif"),
@@ -211,3 +231,4 @@ system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfil
                paste0("(A*B)"
                )
 ))
+}

@@ -18,8 +18,6 @@ aoi   <- getData('GADM',
 
 (bb    <- extent(aoi))
  
-
-
 ### What grid size do we need ? 
 grid_size <- 20000          ## in meters
 
@@ -114,17 +112,9 @@ my_tiles <- tiles[tiles$tileID %in% df[df$username == username,"tileID"],]
 plot(my_tiles,add=T,col="green")
 length(my_tiles)
 
-### Export the final subset
-export_name <- paste0("charcoal_kilns_",length(my_tiles),"_tiles_",username)
-
-writeOGR(obj=my_tiles,
-         dsn=paste(tile_dir,export_name,".kml",sep=""),
-         layer= export_name,
-         driver = "KML",
-         overwrite_layer = T)
 
 ### Export the ONE TILE IN THE subset
-export_name <- paste0("charcoal_kilns_one_tile_",username)
+export_name <- paste0("UGA_one_tile_",username)
 
 writeOGR(obj=my_tiles[1,],
          dsn=paste(tile_dir,export_name,".kml",sep=""),
