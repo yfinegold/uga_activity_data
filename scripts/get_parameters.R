@@ -61,7 +61,7 @@ mmu <- 11
 setwd(rootdir)
 rootdir <- paste0(getwd(),"/")
 
-scriptdir<- paste0(rootdir,"scripts/")
+scriptdir<- paste0(rootdir,"scripts/misc/")
 data_dir <- paste0(rootdir,"data/")
 bfast_dir<- paste0(rootdir,"data/bfast/")
 thres_dir<- paste0(bfast_dir,"threshold/")
