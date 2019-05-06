@@ -143,7 +143,6 @@ system(sprintf("gdal_sieve.py -st %s %s %s ",
 system(sprintf("gdal_translate -ot Byte -co COMPRESS=LZW %s %s",
                paste0(ad_dir,"tmp_change_2015_2017_sieve.tif"),
                change.sieved
-
 ))
 
 ################### REMOVE UNCOMPRESSED FILE

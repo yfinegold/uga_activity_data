@@ -13,12 +13,15 @@ source('~/uga_activity_data/scripts/get_parameters.R')
 
 ## load data
 ## assign the file names to variables
-cefile <- paste0(ref_dir,'TOTAL_collectedData_earthuri_ce_changes1517_on_080319_151929_CSV.csv')
+cefile <- paste0(ref_dir,'ref_data_changes1517_080319.csv')
+cefile1 <- paste0(ref_dir,'TOTAL_collectedData_earthuri_ce_changes1517_on_080319_151929_CSV.csv')
+
 lc2015 <- paste0(lc15_dir,'sieved_LC_2015.tif')
 lc2017 <- paste0(lc17_dir,'LC_2017_18012019.tif')
 mgmt   <- paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.shp')
 lc2015p <- paste0(lc2015,"sieved_LC_2015_proj.tif")
 lc2017p <- paste0(lc2017,"LC_2017_18012019_proj.tif")
+hansen <- paste0(gfc_dir,"gfc_UGA_lossyear.tif")
 
 ## read the data into R
 ## load the forest management data in R
@@ -193,6 +196,14 @@ change.labels <-  as.data.frame(cbind(1:13, c('stable forest PL to PL', 'stable 
 names(change.labels) <- c('change_2015_2017','change_2015_2017_label')
 coord.spdf <- merge(coord.spdf,change.labels)
 
+
+## create change classes: level 3
+## this is derived from the Hansen Global Forest Change data
+coord.spdf$gfc_lossyear <- extract(raster(hansen),coord.spdf)
+table(coord.spdf$gfc_lossyear)
+table(coord.spdf$gfc_lossyear,coord.spdf$ref_class_label)
+table(coord.spdf$gfc_lossyear,coord.spdf$change_2015_2017_label)
+
 ###############################################################################
 ################### QUALITY CHECK AND CLEAN DATA
 ###############################################################################
@@ -209,7 +220,6 @@ coord.spdf$lulc_2017_class_simp[coord.spdf$lulc_2017_class %in% 6:13] <- 'nonfor
 ## reference data labelled with low confidence
 table(coord.spdf$number_trees_after_def_plant_wl_label)
 table(coord.spdf$ref_class_label,coord.spdf$ref_class)
-
 ## create a dataset that needs to be rechecked using Collect Earth
 recheck <- coord.spdf[!coord.spdf$lulc_2015_class_simp == coord.spdf$lulc_2017_class_simp & coord.spdf$ref_class %in% c(11,99) 
                       |
@@ -219,6 +229,8 @@ recheck <- coord.spdf[!coord.spdf$lulc_2015_class_simp == coord.spdf$lulc_2017_c
                                                           'Potential deforestation in woodlands','Potential forest gain', '' )
                       |
                         coord.spdf$confidence_label %in% c('Low')
+                      |
+                        (!coord.spdf$ref_class_label %in% c("Deforestation in THF", "Deforestation in woodlands") & coord.spdf$gfc_lossyear %in% c(15:17) )
                       ,]
 print(paste0('there are ', nrow(recheck),' samples to recheck'))
 
@@ -232,14 +244,7 @@ coord.spdf <- coord.spdf[!coord.spdf$id %in% recheck$id,
 ################### COMPUTE AREAS IN EACH MANAGEMENT TYPE
 ###############################################################################
 ####################################################################################################
-################# PIXEL COUNT FUNCTION
-pixel_count <- function(x){
-  info    <- gdalinfo(x,hist=T)
-  buckets <- unlist(str_split(info[grep("bucket",info)+1]," "))
-  buckets <- as.numeric(buckets[!(buckets == "")])
-  hist    <- data.frame(cbind(0:(length(buckets)-1),buckets))
-  hist    <- hist[hist[,2]>0,]
-}
+
 
 ################# PIXEL COUNT OF PRIVATE LANDS
 hist <- pixel_count(paste0(ad_dir,"change_2015_2017_private_lands_UTM.tif"))
@@ -272,10 +277,18 @@ write.csv(hist,paste0(ad_dir,"change_2015_2017_NFA.csv"),row.names = F)
 ################# COMBINE PIXEL COUNTS OF ALL MANAGEMENT AREAS
 areas <- rbind(read.csv(paste0(ad_dir,"change_2015_2017_private_lands.csv")),read.csv(paste0(ad_dir,"change_2015_2017_UWA.csv")),read.csv(paste0(ad_dir,"change_2015_2017_NFA.csv")))
 areas
+## areas for only mgmt areas
+for(strat in unique(areas$mgmt_label)){
+  areas$mgmt_area_ha[areas$mgmt_label %in% strat] <- sum(areas$area_ha[areas$mgmt_label %in% strat])
+}
+## areas for only land change classes
+for(strat in unique(areas$change_2015_2017_label)){
+  areas$change_area_ha[areas$change_2015_2017_label %in% strat] <- sum(areas$area_ha[areas$change_2015_2017_label %in% strat])
+}
 totalarea <- floor(sum(areas$area_ha))
 df <- merge(coord.spdf,areas, by.x=c('change_2015_2017_label','mgmt_label'),by.y=c('change_2015_2017_label','mgmt_label'))
-test <- df[!df %in% recheck,]
-tail(df,20)
+df <- df[!df %in% recheck,]
+tail(df)
 
 ## STRATA AS CHANGE CLASS BY MANAMGEMENT TYPE
 df$strata <- paste0(df$change_2015_2017.x,'_',df$mgmt)
@@ -294,16 +307,18 @@ df<- df[!df$strata_label %in% names(which((table(df$strata_label)<2)==TRUE)),]
 # loss_area <- sum(hist[(hist$code > 7 & hist$code < 9),"pixels"]*pixel*pixel/10000)
 sum(unique(df$map_weights))
 table(df$strata)
+sum(unique(df$area_ha))
 
 table(df$ref_class_label)
 nrow(df)
-table(df$ref_class_label)
 table(df$confidence_label)
 table(df$change_2015_2017_label,df$ref_class_label,df$mgmt_label)
 table(df$number_trees_2017_tof_label)
 table(df$lulc_2015_class_label,df$lulc_2017_class_label,df$ref_class_label)
 table(df$lulc_2015_class_label,df$lulc_2015_class)
-
+table(df$mgmt_label)
+table(df$area_ha,df$mgmt_label)
+write.csv(df,paste0(ref_dir,'change_2015_2017_ref_data_1.csv'),row.names = F)
 
 ###############################################################################
 ################### COMPUTE STATISTICS USING STRATIFIED RANDOM ESTIMATOR
@@ -311,6 +326,8 @@ table(df$lulc_2015_class_label,df$lulc_2015_class)
 ###############################################################################
 ## SURVEY DESIGN AS STRATIFIED RANDOM
 strat_srs_design <- svydesign(ids=~1,  strata=~mgmt_label,
+                              fpc=~mgmt_area_ha, weights=~map_weights, data=df)
+strat_srs_design <- svydesign(ids=~1,  strata=~strata_label,
                               fpc=~area_ha, weights=~map_weights, data=df)
 
 # calculate area and CI per class (for STRATIFIED random sampling design)

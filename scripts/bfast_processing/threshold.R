@@ -2,7 +2,7 @@
 ## Identifying patterns in BFAST output
 ########################################
 ## load parameters
-source('~/uga_degradation/scripts/get_parameters.R')
+source('~/uga_activity_data/scripts/get_parameters.R')
 
 # input files
 bfastout <-paste0(bfast_dir,'bfast_westlbert_co.tif')

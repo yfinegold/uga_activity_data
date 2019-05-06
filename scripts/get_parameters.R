@@ -27,6 +27,7 @@ packages(raster)
 packages(rgeos)
 packages(rgdal)
 packages(Formula)
+packages(gdalUtils)
 
 ## Packages for data table handling
 packages(xtable)
@@ -37,9 +38,15 @@ packages(plyr)
 packages(Hmisc)
 packages(survey)
 packages(dplyr)
+packages(reshape2)
 
 ## Packages for graphics and interactive maps
 packages(ggplot2)
+
+## Packages to download GFC data
+packages(devtools)
+install_github('yfinegold/gfcanalysis')
+library(gfcanalysis)
 
 ## Set the working directory
 rootdir       <- "~/uga_activity_data/"
@@ -69,7 +76,7 @@ ref_dir  <- paste0(ad_dir,"ref/")
 lc15_dir <- paste0(data_dir,"lc_2015/")
 lc17_dir <- paste0(data_dir,"lc_2017/")
 gadm_dir <- paste0(data_dir,"gadm/")
-
+gfc_dir  <- paste0(data_dir,'gfc/')
 
 fld_dir  <- paste0(rootdir,"data/field_data/")
 coll_dir <- paste0(fld_dir,'collected_samples/')
@@ -94,6 +101,7 @@ dir.create(lc15_dir,showWarnings = F)
 dir.create(lc17_dir,showWarnings = F)
 dir.create(gadm_dir,showWarnings = F)
 dir.create(tile_dir,showWarnings = F)
+dir.create(gfc_dir,showWarnings = F)
 
 
 ############ CREATE A FUNCTION TO GENERATE REGULAR GRIDS
@@ -113,4 +121,13 @@ generate_grid <- function(aoi,size){
   ### Assign the right projection
   proj4string(sqr_df) <- proj4string(aoi)
   sqr_df
+}
+
+################# PIXEL COUNT FUNCTION
+pixel_count <- function(x){
+  info    <- gdalinfo(x,hist=T)
+  buckets <- unlist(str_split(info[grep("bucket",info)+1]," "))
+  buckets <- as.numeric(buckets[!(buckets == "")])
+  hist    <- data.frame(cbind(0:(length(buckets)-1),buckets))
+  hist    <- hist[hist[,2]>0,]
 }

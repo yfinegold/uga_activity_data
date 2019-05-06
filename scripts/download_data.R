@@ -19,8 +19,12 @@ source('~/uga_activity_data/scripts/get_parameters.R')
 # system(sprintf("rm %s",paste0(ref_dir,'field_points_feb.zip')))
 
 system(sprintf("wget -O %s  https://www.dropbox.com/s/mt7oylcqp90hweh/TOTAL_collectedData_earthuri_ce_changes1517_on_080319_151929_CSV.csv", paste0(ref_dir,'TOTAL_collectedData_earthuri_ce_changes1517_on_080319_151929_CSV.csv')))
+system(sprintf("wget -O %s  https://www.dropbox.com/s/3ag33hnqsm2if5u/TOTAL_collectedData_earthuri_ce_changes1517_on_080319_151929_CSV_check_potential_XLS_ok_csv.csv", paste0(ref_dir,'ref_data_changes1517_080319.csv')))
+
 system(sprintf("wget -O %s  https://www.dropbox.com/s/v9j05wo4ruyndda/sieved_LC_2015.tif", paste0(lc15_dir,'sieved_LC_2015.tif')))
 system(sprintf("wget -O %s  https://www.dropbox.com/s/9k0dfy1up0h5jcm/LC_2017_18012019.tif", paste0(lc17_dir,'LC_2017_18012019.tif')))
 system(sprintf("wget -O %s  https://www.dropbox.com/s/rw995ccinclebws/Protected_Areas_UTMWGS84_dslv.zip", paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip')))
 system(sprintf("unzip -o %s -d %s ",paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip'), mgmt_dir))
 system(sprintf("rm %s",paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip')))
+system(sprintf("wget -O %s https://www.dropbox.com/s/j08tv54kr0bay0f/usernames_uga.csv", paste0(mgmt_dir,'usernames_uga.csv')))
+
