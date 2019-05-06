@@ -151,6 +151,7 @@ table(coord.spdf$map_change_0_label)
 table(coord.spdf$map_lc2017_label,coord.spdf$map_lc2015_label,coord.spdf$map_change_0_label)
 
 ## create change classes: level 1
+## derrive change from land cover maps
 change1.labels <-  as.data.frame(cbind(1:8, c('stable forest', 'stable non-forest', 'forest loss plantations','forest loss THF','forest loss woodlands', 'forest gain plantations','forest gain THF','forest gain woodlands')))
 names(change1.labels) <- c('map_change_1','map_change_1_label')
 # 1  = stable forest 
@@ -196,13 +197,74 @@ change.labels <-  as.data.frame(cbind(1:13, c('stable forest PL to PL', 'stable 
 names(change.labels) <- c('change_2015_2017','change_2015_2017_label')
 coord.spdf <- merge(coord.spdf,change.labels)
 
-
 ## create change classes: level 3
+## this is converts the land use classes into IPCC classes
+coord.spdf$lulc_2015_class_IPCC <- 0
+coord.spdf$lulc_2017_class_IPCC <- 0
+coord.spdf$map_lc2015_IPCC <- 0
+coord.spdf$map_lc2017_IPCC <- 0
+## reference data 2015 and 2017
+coord.spdf$lulc_2015_class_IPCC[coord.spdf$lulc_2015_class %in% c(1:5) ] <- 1 #forest
+coord.spdf$lulc_2015_class_IPCC[coord.spdf$lulc_2015_class %in% c(9:10)] <- 2 #cropland
+coord.spdf$lulc_2015_class_IPCC[coord.spdf$lulc_2015_class %in% c(6:7) ] <- 3 #grassland
+coord.spdf$lulc_2015_class_IPCC[coord.spdf$lulc_2015_class %in% c(8,12)] <- 4 #wetlands
+coord.spdf$lulc_2015_class_IPCC[coord.spdf$lulc_2015_class %in% c(11)  ] <- 5 #settlements
+coord.spdf$lulc_2015_class_IPCC[coord.spdf$lulc_2015_class %in% c(13)  ] <- 6 #otherland
+
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(1:5) ] <- 1 #forest
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(9:10)] <- 2 #cropland
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(6:7) ] <- 3 #grassland
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(8,12)] <- 4 #wetlands
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(11)  ] <- 5 #settlements
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(13)  ] <- 6 #otherland
+## map data 2015 and 2017
+table(coord.spdf$map_lc2015)
+coord.spdf$map_lc2015_IPCC[coord.spdf$map_lc2015 %in% c(1:5) ] <- 1 #forest
+coord.spdf$map_lc2015_IPCC[coord.spdf$map_lc2015 %in% c(9:10)] <- 2 #cropland
+coord.spdf$map_lc2015_IPCC[coord.spdf$map_lc2015 %in% c(6:7) ] <- 3 #grassland
+coord.spdf$map_lc2015_IPCC[coord.spdf$map_lc2015 %in% c(8,12)] <- 4 #wetlands
+coord.spdf$map_lc2015_IPCC[coord.spdf$map_lc2015 %in% c(11)  ] <- 5 #settlements
+coord.spdf$map_lc2015_IPCC[coord.spdf$map_lc2015 %in% c(13)  ] <- 6 #otherland
+
+coord.spdf$map_lc2017_IPCC[coord.spdf$map_lc2017 %in% c(1:5) ] <- 1 #forest
+coord.spdf$map_lc2017_IPCC[coord.spdf$map_lc2017 %in% c(9:10)] <- 2 #cropland
+coord.spdf$map_lc2017_IPCC[coord.spdf$map_lc2017 %in% c(6:7) ] <- 3 #grassland
+coord.spdf$map_lc2017_IPCC[coord.spdf$map_lc2017 %in% c(8,12)] <- 4 #wetlands
+coord.spdf$map_lc2017_IPCC[coord.spdf$map_lc2017 %in% c(11)  ] <- 5 #settlements
+coord.spdf$map_lc2017_IPCC[coord.spdf$map_lc2017 %in% c(13)  ] <- 6 #otherland
+
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(1:5) ] <- 1 #forest
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(9:10)] <- 2 #cropland
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(6:7) ] <- 3 #grassland
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(8,12)] <- 4 #wetlands
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(11)  ] <- 5 #settlements
+coord.spdf$lulc_2017_class_IPCC[coord.spdf$lulc_2017_class %in% c(13)  ] <- 6 #otherland
+## create IPCC labels
+IPCC.labels <-  as.data.frame(cbind(1:6, c('forest',
+                                           'cropland',
+                                           'grassland',
+                                           'wetlands',
+                                           'settlements',
+                                           'otherland')))
+
+names(IPCC.labels) <- c('map_lc2015_IPCC','map_lc2015_IPCC_label')
+coord.spdf <- merge(coord.spdf,IPCC.labels)
+names(IPCC.labels) <- c('map_lc2017_IPCC','map_lc2017_IPCC_label')
+coord.spdf <- merge(coord.spdf,IPCC.labels)
+names(IPCC.labels) <- c('lulc_2015_class_IPCC','lulc_2015_class_IPCC_label')
+coord.spdf <- merge(coord.spdf,IPCC.labels)
+names(IPCC.labels) <- c('lulc_2017_class_IPCC','lulc_2017_class_IPCC_label')
+coord.spdf <- merge(coord.spdf,IPCC.labels)
+
+
+## create change classes: level 4
 ## this is derived from the Hansen Global Forest Change data
 coord.spdf$gfc_lossyear <- extract(raster(hansen),coord.spdf)
 table(coord.spdf$gfc_lossyear)
 table(coord.spdf$gfc_lossyear,coord.spdf$ref_class_label)
 table(coord.spdf$gfc_lossyear,coord.spdf$change_2015_2017_label)
+
+
 
 ###############################################################################
 ################### QUALITY CHECK AND CLEAN DATA
