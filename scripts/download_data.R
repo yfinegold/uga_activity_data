@@ -1,5 +1,6 @@
 ######################################################
 ##   download data for BFAST workshop 26 Feb 2019   ##
+##  and activity data working session 06 May 2019   ##
 ######################################################
 
 ####################################################################################################
@@ -27,4 +28,9 @@ system(sprintf("wget -O %s  https://www.dropbox.com/s/rw995ccinclebws/Protected_
 system(sprintf("unzip -o %s -d %s ",paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip'), mgmt_dir))
 system(sprintf("rm %s",paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip')))
 system(sprintf("wget -O %s https://www.dropbox.com/s/j08tv54kr0bay0f/usernames_uga.csv", paste0(mgmt_dir,'usernames_uga.csv')))
+
+## updated shapefile with 2015 and 2017 maps
+# system(sprintf("wget -O %s https://www.dropbox.com/s/39d2ltmpdx3eixb/LULC_2017_as_at_4_May_2019_by_edward.zip", paste0(lc17_dir,'LULC_2017_as_at_4_May_2019_by_edward.zip')))
+# system(sprintf("unzip -o %s -d %s ",paste0(lc17_dir,'LULC_2017_as_at_4_May_2019_by_edward.zip'), lc17_dir))
+# system(sprintf("rm %s",paste0(lc17_dir,'LULC_2017_as_at_4_May_2019_by_edward.zip')))
 
