@@ -149,7 +149,7 @@ if(!file.exists(change)){
                  )
   ))
 }
-pl
+plot(raster(change))
 ################### SIEVE TO THE MMU
 if(!file.exists(change.sieved)){
   system(sprintf("gdal_sieve.py -st %s %s %s ",
@@ -170,6 +170,8 @@ if(!file.exists(change.sieved)){
                  paste0(ad_dir,"tmp_change_2015_2017_sieve.tif")
   ))
 }
+plot(raster(change.sieved))
+
 ################### project to latlong
 if(!file.exists(paste0(ad_dir,"change_2015_2017_sieve_wgs84.tif"))){
   system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -multi -co COMPRESS=LZW %s %s",
