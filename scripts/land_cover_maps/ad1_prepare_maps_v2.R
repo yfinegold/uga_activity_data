@@ -42,7 +42,7 @@ if(!file.exists(lc2015_vector.tif)){
                  lc_vector,
                  lc2015,
                  lc2015_vector.tif,
-                 "Class_2015"
+                 "e_15"
   ))
 }
 ## view some metadata from the new raster file
@@ -55,7 +55,7 @@ if(!file.exists(lc2017_vector.tif)){
                  lc_vector,
                  lc2015,
                  lc2017_vector.tif,
-                 "Class_2017"
+                 "e_17"
   ))
 }
 ## view some metadata from the new raster file
@@ -149,7 +149,7 @@ if(!file.exists(change)){
                  )
   ))
 }
-
+pl
 ################### SIEVE TO THE MMU
 if(!file.exists(change.sieved)){
   system(sprintf("gdal_sieve.py -st %s %s %s ",

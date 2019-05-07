@@ -17,6 +17,8 @@ FNF_mask <- paste0(lc_dir,'FNF_mask_2015_2017.tif')
 
 ## match the extent of the 2 LC maps -- using the extent of 2015
 bb<- extent(raster(lc2015))
+extent(raster(lc2017))
+extent(raster(lc2015))
 if(!file.exists(lc2017.aligned)){
 system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -co COMPRESS=LZW %s %s",
                floor(bb@xmin),
@@ -27,8 +29,9 @@ system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -co COMPRESS=LZW %s
                lc2017.aligned
 ))
 }
+extent(raster(lc2017.aligned))
 
-#################### reclassify LC map into THF mask
+#################### reclassify LC map into  mask
 if(!file.exists(FNF_mask)){
 system(sprintf("gdal_calc.py -A %s -B %s --type=Byte --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
                lc2015,
@@ -37,6 +40,7 @@ system(sprintf("gdal_calc.py -A %s -B %s --type=Byte --co COMPRESS=LZW --outfile
                paste0("((A<6)+(B<6))*1")
 ))
 }
+
 #################### reproject mask to latlong WGS84
 if(!file.exists(paste0(lc_dir,"FNF_mask_2015_2017_proj.tif"))){
 system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -co COMPRESS=LZW %s %s",
@@ -47,3 +51,4 @@ system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -co COMPRESS=LZW %s %
 }
 gdalinfo(FNF_mask,mm=T)
 plot(raster(FNF_mask))
+
