@@ -19,8 +19,8 @@ cefile1 <- paste0(ref_dir,'TOTAL_collectedData_earthuri_ce_changes1517_on_080319
 lc2015 <- paste0(lc15_dir,'sieved_LC_2015.tif')
 lc2017 <- paste0(lc17_dir,'LC_2017_18012019.tif')
 mgmt   <- paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.shp')
-lc2015p <- paste0(lc2015,"LULC_2015_04052019_proj.tif")
-lc2017p <- paste0(lc2017,"LULC_2017_04052019_proj.tif")
+lc2015p <- paste0(lc15_dir,"LULC_2015_04052019_proj.tif")
+lc2017p <- paste0(lc17_dir,"LULC_2017_04052019_proj.tif")
 hansen <- paste0(gfc_dir,"gfc_UGA_lossyear.tif")
 
 ## read the data into R
