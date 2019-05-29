@@ -38,3 +38,9 @@ system(sprintf("rm %s",paste0(lc17_dir,'LULC_2017_as_at_4_May_2019_by_edward.zip
 system(sprintf("wget -O %s https://www.dropbox.com/s/kas4zcxuo6sdb8t/LULC_2017_as_at_10_May_2019_by_edward.zip", paste0(lc17_dir,'LULC_2017_as_at_10_May_2019_by_edward.zip')))
 system(sprintf("unzip -o %s -d %s ",paste0(lc17_dir,'LULC_2017_as_at_10_May_2019_by_edward.zip'), lc17_dir))
 system(sprintf("rm %s",paste0(lc17_dir,'LULC_2017_as_at_10_May_2019_by_edward.zip')))
+
+
+## dowload the national scale BFAST output
+## this is 5.6 GB and the download will take a long time
+system(sprintf("wget -O %s https://www.dropbox.com/s/bg0fqoz1fwu4emc/all_bfast.tif", paste0(bfast_dir,'all_bfast.tif')))
+

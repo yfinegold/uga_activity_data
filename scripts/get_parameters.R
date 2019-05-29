@@ -2,7 +2,7 @@
 ####################################################################################################
 ## Set environment variables
 ## Contact yelena.finegold@fao.org 
-## 2019/02/26
+## 2019/05/29
 ####################################################################################################
 ####################################################################################################
 
@@ -123,11 +123,31 @@ generate_grid <- function(aoi,size){
   sqr_df
 }
 
-################# PIXEL COUNT FUNCTION
+################# PIXEL COUNT FUNCTION AND IMAGE STAT FUNCTIONS
 pixel_count <- function(x){
   info    <- gdalinfo(x,hist=T)
   buckets <- unlist(str_split(info[grep("bucket",info)+1]," "))
   buckets <- as.numeric(buckets[!(buckets == "")])
   hist    <- data.frame(cbind(0:(length(buckets)-1),buckets))
   hist    <- hist[hist[,2]>0,]
+}
+
+pixel_mean <- function(x){
+  info    <- gdalinfo(x)
+  p.mean  <- as.numeric(unlist(str_split(info[grep("STATISTICS_MEAN=",info)],"="))[2])
+}
+
+pixel_min <- function(x){
+  info    <- gdalinfo(x)
+  p.min   <- as.numeric(unlist(str_split(info[grep("STATISTICS_MINIMUM=",info)],"="))[2])
+}
+
+pixel_max <- function(x){
+  info    <- gdalinfo(x)
+  p.max   <- as.numeric(unlist(str_split(info[grep("STATISTICS_MAXIMUM=",info)],"="))[2])
+}
+
+pixel_sd <- function(x){
+  info    <- gdalinfo(x)
+  p.sd    <- as.numeric(unlist(str_split(info[grep("STATISTICS_STDDEV=",info)],"="))[2])
 }

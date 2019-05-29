@@ -5,25 +5,40 @@
 source('~/uga_activity_data/scripts/get_parameters.R')
 
 # input files
-bfastout <-paste0(bfast_dir,'bfast_westlbert_co.tif')
-lc <- paste0(lc_dir,'Ug2017_CW_gEdits4_co.tif')
+bfastout <-paste0(bfast_dir,'all_bfast.tif')
+change.sieved <- paste0(ad_dir,"change_2015_2017_all_classes_04052019_sieve.tif")
+# the legend is created in script ad2_analysis.R lines 125 to 145
+lc_trans_legend <- paste0(ad_dir,'all_lc_transitions_legend.csv')
 
 # output file names
-result <- paste0(thres_dir,'bfast_westlbert_co_thf_mask.tif')
-forestmask <- paste0(lc_dir,'THF_mask2017.tif')
-forestmask.albertine <- paste0(lc_dir,'THF_mask2017_albertine.tif')
+bfast.mask <- paste0(thres_dir,'all_bfast_masked.tif')
+forestmask <- paste0(lc_dir,'stableforest_mask.tif')
+forestmask.clip <- paste0(lc_dir,'stableforest_mask_clipped.tif')
+outputfile   <- paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_threshold.tif')
 
 ## parameters
-# factor to divide standard deviation
-divide_sd <- 4
+# factor to multiply standard deviation
+mult_sd <- 2.5
 
-#################### reclassify LC map into THF mask
-system(sprintf("gdal_calc.py -A %s --type=Byte --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
-               lc,
+
+#################### reclassify LC map into forestmask mask
+lc_trans_legend <- read.csv(lc_trans_legend)
+eq.reclass1 <- paste0('(A==',lc_trans_legend$id[(lc_trans_legend$map_lc2015%in%1:5|lc_trans_legend$map_lc2017%in%1:5)],') + ',collapse = '')
+eq.reclass1 <- paste0('(',as.character(substr(eq.reclass1,1,nchar(eq.reclass1)-2)),')*1',collapse = '')
+eq.reclass1
+
+system(sprintf("gdal_calc.py -A %s --type=Byte --debug --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+               change.sieved,
                forestmask,
-               paste0("((A==3)+(A==4))*1")
+               eq.reclass1
 ))
-#################### reproject THF mask to latlong WGS84
+
+gdalinfo(change.sieved,mm=T)
+
+gdalinfo(forestmask2,mm=T)
+plot(raster(forestmask))
+
+#################### reproject forest mask to latlong WGS84
 system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -co COMPRESS=LZW %s %s",
                "EPSG:4326",
                forestmask,
@@ -38,20 +53,19 @@ system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPR
                extent(raster(bfastout))@ymin,
                res(raster(bfastout))[1],
                res(raster(bfastout))[2],
-               
                paste0(thres_dir,"tmp_proj.tif"),
-               forestmask.albertine
+               forestmask.clip
 ))
 
 # apply mask
 system(sprintf("gdal_calc.py -A %s -B %s --B_band=2 --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
-               forestmask.albertine,
+               forestmask.clip,
                bfastout,
-               result,
+               bfast.mask,
                paste0("A*B")
 ))
 # plot(raster(forestmask.albertine))
-# plot(raster(result))
+# plot(raster(bfast.mask))
 
 ## Post-processing ####
 # calculate the mean, standard deviation, minimum and maximum of the magnitude band
@@ -69,17 +83,15 @@ system(sprintf("gdal_calc.py -A %s -B %s --B_band=2 --co COMPRESS=LZW --overwrit
 #################### SET NODATA TO NONE IN THE TIME SERIES STACK
 
 tryCatch({
-  
-  outputfile   <- paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_threshold.tif')
-  # r <- raster(result)
   # NAvalue(r) <- 0
-  means_b2 <- cellStats( raster(result) , na.rm=TRUE, "mean") 
-  mins_b2 <- cellStats( raster(result) , na.rm=TRUE,"min")
-  maxs_b2 <- cellStats(  raster(result) ,na.rm=TRUE, "max")
-  stdevs_b2 <- cellStats(  raster(result) ,na.rm=TRUE, "sd")/divide_sd
+  means_b2 <- pixel_mean(bfast.mask) 
+  mins_b2 <- pixel_min(bfast.mask) 
+  maxs_b2 <- pixel_max(bfast.mask) 
+  stdevs_b2 <- pixel_sd(bfast.mask) 
+  stdevs_b2 <- stdevs_b2 * mult_sd
   system(sprintf("gdal_calc.py -A %s --co=COMPRESS=LZW --type=Byte --outfile=%s --calc='%s'
                  ",
-                 result,
+                 bfast.mask,
                  paste0(thres_dir,"tmp_threshold.tif"),
                  paste0('(A<=',(maxs_b2),")*",
                         '(A>',(means_b2+(stdevs_b2*4)),")*9+",
@@ -99,7 +111,6 @@ tryCatch({
                         '(A<', (means_b2-(stdevs_b2*2)),")*3+",
                         '(A>=',(means_b2-(stdevs_b2*2)),")*",
                         '(A<', (means_b2-(stdevs_b2)),")*2")
-                 
   ))
   
 }, error=function(e){})
@@ -116,18 +127,196 @@ write.table(pct,paste0(thres_dir,"color_table.txt"),row.names = F,col.names = F,
 
 
 ################################################################################
-## Add pseudo color table to result
+## Add pseudo color table to bfast.mask
 system(sprintf("(echo %s) | oft-addpct.py %s %s",
                paste0(thres_dir,"color_table.txt"),
                paste0(thres_dir,"tmp_threshold.tif"),
                paste0(thres_dir,"/","tmp_colortable.tif")
 ))
-## Compress final result
+## Compress final bfast.mask
 system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
                paste0(thres_dir,"/","tmp_colortable.tif"),
                outputfile
 ))
-# gdalinfo(outputfile,hist = T)
+
+################################################################################
+######## post post processing 
+################################################################################
+######## DEFORESTATION
+#################### reclass only high magnitude loss mask
+system(sprintf("gdal_calc.py -A %s --type=Byte --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+               outputfile,
+               paste0(thres_dir,"/","tmp_hi_mag_loss.tif"),
+               paste0("(A==5)")
+))
+
+#################### SIEVE TO THE MMU
+system(sprintf("gdal_sieve.py -st %s %s %s ",
+               mmu,
+               paste0(thres_dir,"/","tmp_hi_mag_loss.tif"),
+               paste0(thres_dir,  "tmp_",substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve.tif')
+               
+))
+## Compress sieved
+system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
+               paste0(thres_dir,  "tmp_",substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve.tif'),
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve.tif')
+               
+))
+#################### DIFFERENCE BETWEEN SIEVED AND ORIGINAL
+system(sprintf("gdal_calc.py -A %s -B %s --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+               paste0(thres_dir,"/","tmp_hi_mag_loss.tif"),
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve.tif'),
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve_inf.tif'),
+               paste0("(A>0)*(A-B)+(A==0)*(B==1)*0")
+))
+
+################################################################################
+######## REFORESTATION
+#################### reclass only high magnitude gain mask
+system(sprintf("gdal_calc.py -A %s --type=Byte --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+               outputfile,
+               paste0(thres_dir,"/","tmp_hi_mag_gain.tif"),
+               paste0("(A==9)")
+))
+
+#################### SIEVE TO THE MMU
+system(sprintf("gdal_sieve.py -st %s %s %s ",
+               mmu,
+               paste0(thres_dir,"/","tmp_hi_mag_gain.tif"),
+               paste0(thres_dir,  "tmp_",substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve.tif')
+               
+))
+
+## Compress sieved
+system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
+               paste0(thres_dir,  "tmp_",substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve.tif'),
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve.tif')
+               
+))
+
+# #################### DIFFERENCE BETWEEN SIEVED AND ORIGINAL
+# system(sprintf("gdal_calc.py -A %s -B %s --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+#                paste0(thres_dir,"/","tmp_hi_mag_gain.tif"),
+#                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve.tif'),
+#                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve_inf.tif'),
+#                paste0("(A>0)*(A-B)+(A==0)*(B==1)*0")
+# ))
+
+################################################################################
+######## DEGRADATION
+### what about sieving another magnitude class? should degradation have some MMU?
+#################### reclass only medium magnitude loss mask
+system(sprintf("gdal_calc.py -A %s --type=Byte --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+               outputfile,
+               paste0(thres_dir,"/","tmp_med_mag_loss.tif"),
+               paste0("(A==4)")
+))
+
+
+#################### COMBINATION INTO activity data MAP ( 3==Df, 4==Dg, 5==gain)
+system(sprintf("gdal_calc.py -A %s -B %s -C %s -D %s -E %s --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+               forestmask.clip,
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve.tif'),
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve_inf.tif'),
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve.tif'),
+               outputfile,
+               paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),
+               paste0("(B==1)*3+(D==1)*5+(((E==4)*(B<1))+(C==1))*4")
+))
+
+gdalinfo(paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),mm=T)
+gdalinfo(paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),hist=T)
+
+####################  CREATE A PSEUDO COLOR TABLE
+cols <- col2rgb(c('white','white','white',"red","yellow","green"))
+pct <- data.frame(cbind(c(0:5),
+                        cols[1,],
+                        cols[2,],
+                        cols[3,]
+))
+
+write.table(pct,paste0(thres_dir,"color_table.txt"),row.names = F,col.names = F,quote = F)
+
+################################################################################
+## Add pseudo color table to bfast change
+system(sprintf("(echo %s) | oft-addpct.py %s %s",
+               paste0(thres_dir,"color_table.txt"),
+               paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),
+               paste0(thres_dir,"/","tmp_BFAST_change_2015_2017.tif")
+))
+
+## Compress final bfast.mask
+system(sprintf("gdal_translate -a_nodata 255 -ot byte -co COMPRESS=LZW %s %s",
+               paste0(thres_dir,"/","tmp_BFAST_change_2015_2017.tif"),
+               paste0(thres_dir,"/","BFAST_change_2015_2017.tif")
+               
+))
+
+plot(raster(paste0(thres_dir,"BFAST_change_2015_2017.tif")))
+
+#################### reproject forest mask to latlong WGS84
+system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -co COMPRESS=LZW %s %s",
+               "EPSG:4326",
+               change.sieved,
+               paste0(thres_dir,"tmp_proj_change.tif")
+))
+
+# clip lc map to output
+system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPRESS=LZW %s %s",
+               extent(raster(paste0(thres_dir,"tmp_proj_change.tif")))@xmin,
+               extent(raster(paste0(thres_dir,"tmp_proj_change.tif")))@ymax,
+               extent(raster(paste0(thres_dir,"tmp_proj_change.tif")))@xmax,
+               extent(raster(paste0(thres_dir,"tmp_proj_change.tif")))@ymin,
+               res(raster(paste0(thres_dir,"tmp_proj_change.tif")))[1],
+               res(raster(paste0(thres_dir,"tmp_proj_change.tif")))[2],
+               
+               paste0(thres_dir,"/","BFAST_change_2015_2017.tif"),
+               paste0(thres_dir,"/","BFAST_change_2015_2017_clipped.tif")
+))
+
+eq.reclass2 <- paste0(
+  paste0('((A == 3)  * (B == ',1:169, ') * ',1:169   ,') + ',collapse=''), 
+  paste0('((A == 4)  * (B == ',1:169, ') * ',170:338 ,') + ',collapse=''),
+  paste0('((A == 5) * (B == ',1:169, ') * ',339:507 ,') + ',collapse='')
+  ,collapse=''
+)
+eq.reclass2 <- as.character(substr(eq.reclass2,1,nchar(eq.reclass2)-2))
+eq.reclass2
+#### deforestation and lc transition matrix overlap
+system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
+               paste0(thres_dir,"/","BFAST_change_2015_2017_clipped.tif"),
+               paste0(thres_dir,"tmp_proj_change.tif"),
+               paste0(thres_dir,"LC_combined_test.tif"),
+               paste0('(A == 3)  * B')
+              ))
+32736
+#################### reproject forest mask to UTM 36S
+system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -co COMPRESS=LZW %s %s",
+               "EPSG:32736",
+               paste0(thres_dir,"LC_combined_test.tif"),
+               paste0(thres_dir,"tmp_proj.tif")
+))
+################# PIXEL COUNT OF DEFORESTATION ON LC MATRIX CLASSES
+hist <- pixel_count(paste0(thres_dir,"tmp_proj.tif"))
+pixel     <- res(raster(paste0(thres_dir,"tmp_proj.tif")))[1]
+names(hist) <- c("id","pixels")
+hist$area_ha <- floor(hist$pixels*pixel*pixel/10000)
+hist <- merge(hist,lc_trans_legend )
+head(hist)
+hist$change_label <- 'deforestation'
+write.csv(hist,paste0(ad_dir,"BFAST_change_2015_2017_deforestation.csv"),row.names = F)
+
+
+
+paste0(thres_dir,"combined_test.tif")
+gdalinfo(paste0(thres_dir,"BFAST_change_2015_2017_clipped.tif"),hist = T)
+gdalinfo(paste0(thres_dir,"combined_test.tif"),hist = T)
+
+gdalinfo(paste0(thres_dir,"tmp_proj_change.tif"),mm = T)
+
+gdalinfo(paste0(thres_dir,"LC_combined_test.tif"),mm = T)
+plot(raster(outputfile))
 ## Clean all
 system(sprintf(paste0("rm ",thres_dir,"/","tmp*.tif")))
 

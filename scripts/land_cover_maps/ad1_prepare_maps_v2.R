@@ -26,14 +26,14 @@ mgmt.proj.tif <- paste0(mgmt_dir,"Protected_Areas_WGS84_dslv.tif")
 mgmt.tif <- paste0(mgmt_dir,"Protected_Areas_UTM_dslv.tif")
 change <- paste0(ad_dir,"change_2015_2017_04052019.tif")
 change.sieved <- paste0(ad_dir,"change_2015_2017_04052019_sieve.tif")
-#lc_vector <- paste0(lc17_dir,'LULC_2017_as_at_4_May_2019_by_edward.shp')
 lc_vector <- paste0(lc17_dir,'LULC_2017_as_at_10_May_2019_by_edward.shp')
-#lc2015_vector.tif <- paste0(lc15_dir,'LULC_2015_04052019.tif')
-#lc2017_vector.tif <- paste0(lc17_dir,'LULC_2017_04052019.tif')
-lc2015_vector.tif <- paste0(lc15_dir,'LULC_2015_13052019.tif')
-lc2017_vector.tif <- paste0(lc17_dir,'LULC_2017_13052019.tif')
+lc2015_vector.tif <- paste0(lc15_dir,'LULC_2015_04052019.tif')
+lc2017_vector.tif <- paste0(lc17_dir,'LULC_2017_04052019.tif')
 lc2015_vector.tif.prj <- paste0(lc15_dir,'LULC_2015_04052019_proj.tif')
 lc2017_vector.tif.prj <- paste0(lc17_dir,'LULC_2017_04052019_proj.tif')
+
+change.all <- paste0(ad_dir,"change_2015_2017_all_classes_04052019.tif")
+change.all.sieved <- paste0(ad_dir,"change_2015_2017_all_classes_04052019_sieve.tif")
 
 ###############################################################################
 ################### vector map to raster
@@ -84,13 +84,15 @@ if(!file.exists(lc2017_vector.tif.prj)){
 }
 
 ##### reproject mgmt data into latlong
+
 mgmt.data <- readOGR(mgmt)
 #download province boundaries
 adm <- getData ('GADM', country= countrycode, level=1)
 #match the coordinate systems for the sample points and the boundaries
 mgmt.data.proj <- spTransform(mgmt.data,crs(adm))
 writeOGR(mgmt.data.proj,mgmt_dir,'Protected_Areas_WGS84_dslv',driver = 'ESRI Shapefile')
-##### rasterize mgmt map
+##### rasterize mgmt map               paste0(thres_dir,"combined_test.tif"),
+
 ##### latlong forest management map 
 if(!file.exists(mgmt.proj.tif)){
   system(sprintf("python %soft-rasterize_attr.py -v %s -i %s -o %s -a %s",
@@ -113,6 +115,80 @@ if(!file.exists(mgmt.tif)){
   ))
 }
 
+###############################################################################
+################### create change map for all map classes
+###############################################################################
+#################### COMBINATION INTO NATIONAL map comparision
+# 1  = stable forest plantation 
+# 2  = stable forest plantation 
+# 3  = stable forest THF 
+# 4  = stable forest THF
+# 5  = stable forest WL 
+# 6  = stable non-forest Bushland 
+# 7  = stable non-forest grassland 
+# 8  = stable non-forest wetlands
+# 9  = stable non-forest cropland
+# 10 = stable non-forest cropland
+# 11 = stable non-forest settlement
+# 12 = stable non-forest water
+# 13 = stable non-forest impediments
+# 14 = hard wood plantation to coniferous plantation 
+# 15 = hard wood plantation to THF 
+# 16 = hard wood plantation to THF 
+# 17 = hard wood plantation to WL 
+# 18 = hard wood plantation to Bushland
+## ... classes in between
+# 98 = wetlands to hard wood plantation
+## ... more classes in between
+# 169 impediments to water
+if(!file.exists(change.all)){
+  system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --type=Byte --outfile=%s --calc=\"%s\"",
+                 lc2015_vector.tif,
+                 lc2017_vector.tif,
+                 change.all,
+                 sprintf(
+                   "((A==B) * A) +  %s %s %s %s %s %s %s %s %s %s %s %s %s %s  " ,              ## stable classes 1 to 13
+                   paste0('((A==1)  * (B == ',2:13,           ') *',14:25 ,')  + ',collapse=''), ## plantation hardwood to classes 2 to 13 with values 14 to 25
+                   paste0('((A==2)  * (B == ',c(1,3:13),      ') *',26:37 ,')  + ',collapse=''),
+                   paste0('((A==3)  * (B == ',c(1:2,4:13),    ') *',38:49 ,')  + ',collapse=''),
+                   paste0('((A==4)  * (B == ',c(1:3,5:13),    ') *',50:61 ,')  + ',collapse=''),
+                   paste0('((A==5)  * (B == ',c(1:4,6:13),    ') *',62:73 ,')  + ',collapse=''),
+                   paste0('((A==6)  * (B == ',c(1:5,7:13),    ') *',74:85 ,')  + ',collapse=''),
+                   paste0('((A==7)  * (B == ',c(1:6,8:13),    ') *',86:97 ,')  + ',collapse=''),
+                   paste0('((A==8)  * (B == ',c(1:7,9:13),   ') *',98:109 ,')  + ',collapse=''),
+                   paste0('((A==9)  * (B == ',c(1:8,10:13), ') *',110:121 ,')  + ',collapse=''),
+                   paste0('((A==10) * (B == ',c(1:9,11:13), ') *',122:133 ,')  + ',collapse=''),
+                   paste0('((A==11) * (B == ',c(1:10,12:13),') *',134:145 ,')  + ',collapse=''),
+                   paste0('((A==12) * (B == ',c(1:11,13),   ') *',146:157 ,')  + ',collapse=''),
+                   paste0('((A==13) * (B == ',c(1:11),      ') *',158:168 ,')  + ',collapse=''),
+                   paste0('((A==13) * (B == ',c(12),        ') *',169 ,') '      ,collapse='')
+                   
+                 )
+                 
+  ))
+}
+
+gdalinfo(change.all, mm=T)
+################### SIEVE TO THE MMU
+if(!file.exists(change.all.sieved)){
+  system(sprintf("gdal_sieve.py -st %s %s %s ",
+                 mmu,
+                 change.all,
+                 paste0(ad_dir,"tmp_change_2015_2017_sieve.tif")
+  ))
+  
+  
+  ################### COMPRESS
+  system(sprintf("gdal_translate -ot Byte -co COMPRESS=LZW %s %s",
+                 paste0(ad_dir,"tmp_change_2015_2017_sieve.tif"),
+                 change.all.sieved
+  ))
+  
+  ################### REMOVE UNCOMPRESSED FILE
+  system(sprintf("rm %s ",
+                 paste0(ad_dir,"tmp_change_2015_2017_sieve.tif")
+  ))
+}
 
 ###############################################################################
 ################### create change map

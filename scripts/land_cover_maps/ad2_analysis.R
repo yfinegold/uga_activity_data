@@ -5,7 +5,7 @@
 ## of the reference data and map data
 ## contact : yelena.finegold@fao.org
 ## created : 09 April 2019
-## modified: 24 April 2019
+## modified: 29 MAY 2019
 ####################################################
 
 ### load the parameters
@@ -117,10 +117,32 @@ coord.spdf$map_lc2017 <- extract(raster(lc2017p),coord.spdf)
 
 ## create labels for the land cover classes
 lc.labels <-  as.data.frame(cbind(1:13, c('Broadleaved plantations', 'Coniferus plantations', 'THF high stocked', 'THF low stocked',  'Woodlands', 'Bushland', 'Grassland', 'Wetland', 'Subsistence farmland', 'Commercial farmland', 'Built up', 'Water bodies', 'Impediment')))
-names(lc.labels) <- c('map_lc2015','map_lc2015_label')
-coord.spdf <- merge(coord.spdf,lc.labels)
 names(lc.labels) <- c('map_lc2017','map_lc2017_label')
 coord.spdf <- merge(coord.spdf,lc.labels)
+names(lc.labels) <- c('map_lc2015','map_lc2015_label')
+coord.spdf <- merge(coord.spdf,lc.labels)
+
+## create a legend for all possible changes between the 2 land cover maps (13*13= 169 classes)
+lc.expand <- as.data.frame(expand.grid(lc.labels))
+lc.trans <- merge( lc.labels,lc.expand,by.x='map_lc2015_label',by.y='map_lc2015_label',all.y=T)
+lc.trans[, c(2,3)] <- sapply(lc.trans[, c(2,3)], as.numeric)
+lc.trans <- lc.trans[  order( (lc.trans[,2]), (lc.trans[,3]) ), ]
+lc.trans <-lc.trans[!lc.trans$map_lc2015.x==lc.trans$map_lc2015.y,]
+head(lc.trans)
+lc.labels$map_lc2015.y <-lc.labels$map_lc2015 
+names(lc.labels)<-  c("map_lc2015_label","map_lc2015","map_lc2017")
+names(lc.trans)[1:3] <- c("map_lc2015_label","map_lc2015","map_lc2017")
+lc.labels <- lc.labels[,c(2,1,3)]
+all.lc.trans <- rbind(lc.labels,lc.trans)
+head(all.lc.trans,20)
+all.lc.trans$id <- 1:nrow(all.lc.trans)
+all.lc.trans <- merge(all.lc.trans,lc.labels, by.x='map_lc2017',by.y='map_lc2015', all.x=T)
+names(all.lc.trans)[c(2,5)]<-c('map_lc2015_label','map_lc2017_label')
+all.lc.trans$change_2015_2017_label <- paste0(all.lc.trans$map_lc2015_label,'_',all.lc.trans$map_lc2017_label)
+all.lc.trans <- all.lc.trans[  order( (all.lc.trans$id) ), ]
+## write the output to a CSV file as the legend to the LC matrix map
+write.csv(all.lc.trans,paste0(ad_dir,'all_lc_transitions_legend.csv'),row.names = F)
+
 
 ## check the change map classes and the land cover maps
 ## there are issues with the change map that was used, it does not consistent with the 2015 and 2017 LC maps
