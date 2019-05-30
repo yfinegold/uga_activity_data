@@ -89,6 +89,7 @@ tryCatch({
   maxs_b2 <- pixel_max(bfast.mask) 
   stdevs_b2 <- pixel_sd(bfast.mask) 
   stdevs_b2 <- stdevs_b2 * mult_sd
+  stdevs_b2 *3
   system(sprintf("gdal_calc.py -A %s --co=COMPRESS=LZW --type=Byte --outfile=%s --calc='%s'
                  ",
                  bfast.mask,
@@ -203,6 +204,7 @@ system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
 #                paste0("(A>0)*(A-B)+(A==0)*(B==1)*0")
 # ))
 
+
 ################################################################################
 ######## DEGRADATION
 ### what about sieving another magnitude class? should degradation have some MMU?
@@ -212,25 +214,44 @@ system(sprintf("gdal_calc.py -A %s --type=Byte --co COMPRESS=LZW --outfile=%s --
                paste0(thres_dir,"/","tmp_med_mag_loss.tif"),
                paste0("(A==4)")
 ))
+#################### SIEVE TO THE MMU
+system(sprintf("gdal_sieve.py -st %s %s %s ",
+               2,
+               paste0(thres_dir,"/","tmp_med_mag_loss.tif"),
+               paste0(thres_dir,  "tmp_",substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_deg_threshold_sieve.tif')
+               
+))
 
+## Compress sieved
+system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
+               paste0(thres_dir,  "tmp_",substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_deg_threshold_sieve.tif'),
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_deg_threshold_sieve.tif')
+               
+))
 
-#################### COMBINATION INTO activity data MAP ( 3==Df, 4==Dg, 5==gain)
-system(sprintf("gdal_calc.py -A %s -B %s -C %s -D %s -E %s --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+system(sprintf("gdal_calc.py -A %s -B %s -C %s -D %s -E %s  --overwrite --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
                forestmask.clip,
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve.tif'),
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve_inf.tif'),
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve.tif'),
-               outputfile,
+               paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_deg_threshold_sieve.tif'),
                paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),
-               paste0("(B==1)*3+(D==1)*5+(((E==4)*(B<1))+(C==1))*4")
+               paste0(
+                 "((A==1)*(B<1)*(C<1)*(D<1)*(E<1))*1+",
+                 "((A==0)*(B<1)*(C<1)*(D<1)*(E<1))*2+",
+                 "(B==1)*3+",
+                 "(((E==1)*(B<1))+(C==1))*4+",
+                 "(D==1)*5"
+                 ## need to add a mask layer for 0
+                 ,collapse = "")
 ))
-
+# plot(raster(forestmask.clip))
 gdalinfo(paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),mm=T)
 gdalinfo(paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),hist=T)
 
 ####################  CREATE A PSEUDO COLOR TABLE
-cols <- col2rgb(c('white','white','white',"red","yellow","green"))
-pct <- data.frame(cbind(c(0:5),
+cols <- col2rgb(c('white','forestgreen','gray100',"red","yellow","darkblue"))
+pct <- data.frame(cbind(c(0:6),
                         cols[1,],
                         cols[2,],
                         cols[3,]
@@ -287,7 +308,7 @@ eq.reclass2
 system(sprintf("gdal_calc.py -A %s -B %s  --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                paste0(thres_dir,"/","BFAST_change_2015_2017_clipped.tif"),
                paste0(thres_dir,"tmp_proj_change.tif"),
-               paste0(thres_dir,"LC_combined_test.tif"),
+               paste0(thres_dir,"BFAST_deforestation_LC_classes.tif"),
                paste0('(A == 3)  * B')
               ))
 32736
