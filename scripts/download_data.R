@@ -24,9 +24,10 @@ system(sprintf("wget -O %s  https://www.dropbox.com/s/3ag33hnqsm2if5u/TOTAL_coll
 
 system(sprintf("wget -O %s  https://www.dropbox.com/s/v9j05wo4ruyndda/sieved_LC_2015.tif", paste0(lc15_dir,'sieved_LC_2015.tif')))
 system(sprintf("wget -O %s  https://www.dropbox.com/s/9k0dfy1up0h5jcm/LC_2017_18012019.tif", paste0(lc17_dir,'LC_2017_18012019.tif')))
-system(sprintf("wget -O %s  https://www.dropbox.com/s/rw995ccinclebws/Protected_Areas_UTMWGS84_dslv.zip", paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip')))
-system(sprintf("unzip -o %s -d %s ",paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip'), mgmt_dir))
-system(sprintf("rm %s",paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip')))
+##system(sprintf("wget -O %s  https://www.dropbox.com/s/rw995ccinclebws/Protected_Areas_UTMWGS84_dslv.zip", paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.zip')))
+system(sprintf("wget -O %s  https://www.dropbox.com/s/ux3gkizl12zolvc/Protected_Area.zip", paste0(mgmt_dir,'Protected_Area.zip')))
+system(sprintf("unzip -o %s -d %s ",paste0(mgmt_dir,'Protected_Area.zip'), mgmt_dir))
+system(sprintf("rm %s",paste0(mgmt_dir,'Protected_Area.zip')))
 system(sprintf("wget -O %s https://www.dropbox.com/s/j08tv54kr0bay0f/usernames_uga.csv", paste0(mgmt_dir,'usernames_uga.csv')))
 
 ## updated shapefile with 2015 and 2017 maps
