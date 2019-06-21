@@ -21,6 +21,8 @@ lc2017 <- paste0(lc17_dir,'LC_2017_18012019.tif')
 ## forest management areas
 mgmt   <- paste0(mgmt_dir,'Protected_Areas_UTMWGS84_dslv.shp')
 
+
+
 ## Latlong projection used to reproject data
 proj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 

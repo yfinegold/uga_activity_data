@@ -14,6 +14,8 @@ lc_trans_legend <- paste0(ad_dir,'all_lc_transitions_legend.csv')
 bfast.mask <- paste0(thres_dir,'all_bfast_masked.tif')
 forestmask <- paste0(lc_dir,'stableforest_mask.tif')
 forestmask.clip <- paste0(lc_dir,'stableforest_mask_clipped.tif')
+boundarymask <- paste0(lc_dir,'boundary_mask.tif')
+boundary.clip <- paste0(lc_dir,'boundary_mask_clipped.tif')
 outputfile   <- paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_threshold.tif')
 
 ## parameters
@@ -27,12 +29,13 @@ eq.reclass1 <- paste0('(A==',lc_trans_legend$id[(lc_trans_legend$map_lc2015%in%1
 eq.reclass1 <- paste0('(',as.character(substr(eq.reclass1,1,nchar(eq.reclass1)-2)),')*1',collapse = '')
 eq.reclass1
 
+
+
 system(sprintf("gdal_calc.py -A %s --type=Byte --debug --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
                change.sieved,
                forestmask,
                eq.reclass1
 ))
-
 gdalinfo(change.sieved,mm=T)
 
 gdalinfo(forestmask2,mm=T)
@@ -57,6 +60,32 @@ system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPR
                forestmask.clip
 ))
 
+## create a boundary mask
+system(sprintf("gdal_calc.py -A %s --type=Byte --debug --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+               change.sieved,
+               boundarymask,
+               paste0("(A==0)*1")
+))
+gdalinfo(boundarymask)
+plot(raster(boundarymask))
+
+system(sprintf("gdalwarp -t_srs \"%s\" -overwrite -ot Byte -co COMPRESS=LZW %s %s",
+               "EPSG:4326",
+               boundarymask,
+               paste0(thres_dir,"tmp_proj.tif")
+))
+
+# clip bfast output to mask
+system(sprintf("gdal_translate -ot Byte -projwin %s %s %s %s -tr %s %s -co COMPRESS=LZW %s %s",
+               extent(raster(bfastout))@xmin,
+               extent(raster(bfastout))@ymax,
+               extent(raster(bfastout))@xmax,
+               extent(raster(bfastout))@ymin,
+               res(raster(bfastout))[1],
+               res(raster(bfastout))[2],
+               paste0(thres_dir,"tmp_proj.tif"),
+               boundary.clip
+))
 # apply mask
 system(sprintf("gdal_calc.py -A %s -B %s --B_band=2 --co COMPRESS=LZW --overwrite --outfile=%s --calc=\"%s\"",
                forestmask.clip,
@@ -90,6 +119,26 @@ tryCatch({
   stdevs_b2 <- pixel_sd(bfast.mask) 
   stdevs_b2 <- stdevs_b2 * mult_sd
   stdevs_b2 *3
+  num_class <-9
+  paste0('(A<=',(maxs_b2),")*", '(A>',(means_b2+(stdevs_b2*floor(num_class/2))),")*",num_class,"+" ,
+          paste( 
+            " ( A >",(means_b2+(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+            " ( A <=",(means_b2+(stdevs_b2*2:floor(num_class/2))),") *",
+            (ceiling(num_class/2)+1):(num_class-1),"+",
+             collapse = ""), 
+         '(A<=',(means_b2+(stdevs_b2)),")*",
+         '(A>', (means_b2-(stdevs_b2)),")*1+",
+         '(A>=',(mins_b2),")*",
+         '(A<', (means_b2-(stdevs_b2*4)),")*",ceiling(num_class/2),"+",
+         paste( 
+           " ( A <",(means_b2-(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+           " ( A >=",(means_b2-(stdevs_b2*2:floor(num_class/2))),") *",
+           2:(ceiling(num_class/2)-1),"+",
+           collapse = "")
+         )
+  
+  paste( " ( A <=",(means_b2+(stdevs_b2*1:num_class)),") *", collapse = "")
+  
   system(sprintf("gdal_calc.py -A %s --co=COMPRESS=LZW --type=Byte --outfile=%s --calc='%s'
                  ",
                  bfast.mask,
@@ -112,6 +161,26 @@ tryCatch({
                         '(A<', (means_b2-(stdevs_b2*2)),")*3+",
                         '(A>=',(means_b2-(stdevs_b2*2)),")*",
                         '(A<', (means_b2-(stdevs_b2)),")*2")
+  ))
+  
+system(sprintf("gdal_calc.py -A %s --co=COMPRESS=LZW --type=Byte --outfile=%s --calc='%s'",
+                 bfast.mask,
+                 paste0(thres_dir,"tmp_threshold.tif"),
+                 paste0('(A<=',(maxs_b2),")*", '(A>',(means_b2+(stdevs_b2*floor(num_class/2))),")*",num_class,"+" ,
+                        paste( 
+                          " ( A >",(means_b2+(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+                          " ( A <=",(means_b2+(stdevs_b2*2:floor(num_class/2))),") *",
+                          (ceiling(num_class/2)+1):(num_class-1),"+",
+                          collapse = ""), 
+                        '(A<=',(means_b2+(stdevs_b2)),")*",
+                        '(A>', (means_b2-(stdevs_b2)),")*1+",
+                        '(A>=',(mins_b2),")*",
+                        paste( 
+                          " ( A <",(means_b2-(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+                          " ( A >=",(means_b2-(stdevs_b2*2:floor(num_class/2))),") *",
+                          2:(ceiling(num_class/2)-1),"+",
+                          collapse = "")
+                 )
   ))
   
 }, error=function(e){})
@@ -228,17 +297,19 @@ system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_deg_threshold_sieve.tif')
                
 ))
-
-system(sprintf("gdal_calc.py -A %s -B %s -C %s -D %s -E %s  --overwrite --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+plot(raster(forestmask.clip))
+system(sprintf("gdal_calc.py -A %s -B %s -C %s -D %s -E %s -F %s  --overwrite --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
                forestmask.clip,
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve.tif'),
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_loss_threshold_sieve_inf.tif'),
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_gain_threshold_sieve.tif'),
                paste0(thres_dir,  substr(basename(bfastout), 1, nchar(basename(bfastout))-4),'_deg_threshold_sieve.tif'),
+               boundary.clip,
                paste0(thres_dir,"tmp_BFAST_change_2015_2017.tif"),
                paste0(
-                 "((A==1)*(B<1)*(C<1)*(D<1)*(E<1))*1+",
-                 "((A==0)*(B<1)*(C<1)*(D<1)*(E<1))*2+",
+                 "(F==1)*0+",
+                 "((A==1)*(B<1)*(C<1)*(D<1)*(E<1)*(F<1))*1+",
+                 "((A==0)*(B<1)*(C<1)*(D<1)*(E<1)*(F<1))*2+",
                  "(B==1)*3+",
                  "(((E==1)*(B<1))+(C==1))*4+",
                  "(D==1)*5"
