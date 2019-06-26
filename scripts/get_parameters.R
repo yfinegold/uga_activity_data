@@ -70,6 +70,7 @@ lc_dir2   <- paste0(rootdir,"data/water_mask/")
 nfi_dir  <- paste0(rootdir,"data/nfi/")
 mgmt_dir <- paste0(rootdir,"data/forest_management/")
 mspa_dir <- paste0(rootdir,"data/MSPA/")
+ug_mask_dir <- paste0(rootdir, "data/district_mask/")
 
 ad_dir   <- paste0(rootdir,"data/AD/")
 ref_dir  <- paste0(ad_dir,"ref/")
