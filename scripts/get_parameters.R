@@ -97,6 +97,7 @@ dir.create(ref_dir,showWarnings = F)
 dir.create(ana_dir,showWarnings = F)
 dir.create(mspa_dir,showWarnings = F)
 dir.create(fld_dir,showWarnings = F)
+dir.create(ug_mask_dir,showWarnings = F)
 
 dir.create(ad_dir,showWarnings = F)
 dir.create(lc15_dir,showWarnings = F)
