@@ -214,7 +214,7 @@ if(!file.exists(change)){
                  change,
                  paste0("(A>0)*(A<3) * (B>0)*(B<3) * 1+", ### stable forest plantation to plantation
                         "(A>2)*(A<5) * (B>0)*(B<3) * 2+", ### stable forest THF to plantation
-                        "(A>0)*(A<5) * (B>2)*(B<5) * 3+", ### stable forest THF to THF
+                        "(A>2)*(A<5) * (B>2)*(B<5) * 3+", ### stable forest THF to THF
                         "(A>2)*(A<5) * (B==5)      * 4+", ### stable forest THF to woodlands
                         "(A==5) * (B==5)           * 5+", ### stable forest woodlands to woodlands
                         "(A==5) * (B>0)*(B<3)      * 6+", ### stable forest woodlands to plantation
