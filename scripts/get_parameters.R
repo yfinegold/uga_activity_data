@@ -136,21 +136,21 @@ pixel_count <- function(x){
 }
 
 pixel_mean <- function(x){
-  info    <- gdalinfo(x)
+  info    <- gdalinfo(x,stats = T)
   p.mean  <- as.numeric(unlist(str_split(info[grep("STATISTICS_MEAN=",info)],"="))[2])
 }
 
 pixel_min <- function(x){
-  info    <- gdalinfo(x)
+  info    <- gdalinfo(x,stats = T)
   p.min   <- as.numeric(unlist(str_split(info[grep("STATISTICS_MINIMUM=",info)],"="))[2])
 }
 
 pixel_max <- function(x){
-  info    <- gdalinfo(x)
+  info    <- gdalinfo(x,stats = T)
   p.max   <- as.numeric(unlist(str_split(info[grep("STATISTICS_MAXIMUM=",info)],"="))[2])
 }
 
 pixel_sd <- function(x){
-  info    <- gdalinfo(x)
+  info    <- gdalinfo(x,stats = T)
   p.sd    <- as.numeric(unlist(str_split(info[grep("STATISTICS_STDDEV=",info)],"="))[2])
 }
